@@ -22,6 +22,8 @@ server:
     # The IP and port to listen to.
     hostname: {{ matrix_maubot_management_hostname }}
     port: {{ matrix_maubot_management_port }}
+    # Public base URL where the server is visible.
+    public_url: https://matrix.{{ matrix_domain }}
     # The base management API path.
     base_path: /_matrix/maubot/v1
     # The base path for the UI.
@@ -35,10 +37,15 @@ server:
     # Set to "generate" to generate and save a new token at startup.
     unshared_secret: generate
 
-{% if maubot_shared_secret %}
+{% if matrix_maubot_registration_shared_secret %}
 # Shared registration secrets to allow registering new users from the management UI
 registration_secrets:
     {{ matrix_domain }}:
+        # Client-server API URL
+        url: {{ matrix_maubot_cs_url }}
+        # registration_shared_secret from synapse config
+        secret: {{ matrix_maubot_registration_shared_secret }}
+    matrix.{{ matrix_domain }}:
         # Client-server API URL
         url: {{ matrix_maubot_cs_url }}
         # registration_shared_secret from synapse config
@@ -50,8 +57,8 @@ registration_secrets:
 admins:
     root: ""
 {% if matrix_maubot_admins %}
-{% for user, password in matrix_maubot_admins %}
-    {{ user }}: '{{ password }}'
+{% for x in matrix_maubot_admins %}
+    "{{ x.user }}": "{{ x.password }}"
 {% endfor %}
 {% endif %}
 
