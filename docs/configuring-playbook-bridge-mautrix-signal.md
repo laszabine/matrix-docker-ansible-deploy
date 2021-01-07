@@ -4,29 +4,13 @@ The playbook can install and configure [mautrix-signal](https://github.com/tulir
 
 See the project's [documentation](https://github.com/tulir/mautrix-signal/wiki) to learn what it does and why it might be useful to you.
 
+**Note/Prerequisite**: If you're running with the Postgres database server integrated by the playbook (which is the default), you don't need to do anything special and can easily proceed with installing. However, if you're [using an external Postgres server](configuring-playbook-external-postgres.md), you'd need to manually prepare a Postgres database for this bridge and adjust the variables related to that (`matrix_mautrix_signal_database_*`).
+
 Use the following playbook configuration:
 
 ```yaml
 matrix_mautrix_signal_enabled: true
 ```
-
-To specify which users have access to the bridge, use the variable `matrix_mautrix_signal_configuration_permissions`.
-Refer to the documentation for
-```yaml
-bridge:
-  permissions:
-```
-in [the example config in mautrix-signal](https://github.com/tulir/mautrix-signal/blob/master/mautrix_signal/example-config.yaml).
-For instance, use
-```yaml
-matrix_mautrix_signal_configuration_permissions: |
-  {
-    '{{ matrix_domain }}': 'user'
-  }
-```
-to allow all users registered to the current host's matrix domain access to the bridge, or hard-code whatever you like.
-(See [this issue](https://github.com/ansible/ansible/issues/17324#issuecomment-449642731) on how to use variable names as dictionary keys.)
-
 
 ## Set up Double Puppeting
 

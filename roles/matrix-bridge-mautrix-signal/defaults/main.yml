@@ -27,30 +27,41 @@ matrix_mautrix_signal_container_http_host_bind_port: ''
 matrix_mautrix_signal_container_extra_arguments: []
 
 # List of systemd services that matrix-mautrix-signal.service depends on.
-# TODO: unclear whether to put this into group_vars or keep it here
 matrix_mautrix_signal_systemd_required_services_list:
   - 'docker.service'
-  - "{{ 'matrix-synapse.service' if matrix_synapse_enabled else [] }}"
   - 'matrix-mautrix-signal-daemon.service'
-  - 'matrix-mautrix-signal-db.service'
 
 # List of systemd services that matrix-mautrix-signal.service wants
 matrix_mautrix_signal_systemd_wanted_services_list: []
 
+# List of systemd services that matrix-mautrix-signal-daemon.service depends on.
+matrix_mautrix_signal_daemon_systemd_required_services_list: ['docker.service']
+
+# List of systemd services that matrix-mautrix-signal-daemon.service wants
+matrix_mautrix_signal_daemon_systemd_wanted_services_list: []
+
 matrix_mautrix_signal_appservice_token: ''
 matrix_mautrix_signal_homeserver_token: ''
 
-matrix_mautrix_signal_db_docker_image: "postgres:13.0-alpine"
-matrix_mautrix_signal_db_docker_image_force_pull: "{{ matrix_mautrix_signal_db_docker_image.endswith(':latest') }}"
-matrix_mautrix_signal_db_storage_path: "{{ matrix_mautrix_signal_base_path }}/database"
+# Database-related configuration fields
+#
+# This bridge only supports postgres.
+#
+matrix_mautrix_signal_database_engine: 'postgres'
 
-matrix_mautrix_signal_db_user: ''
-matrix_mautrix_signal_db_password: ''
-matrix_mautrix_signal_db_host: 'matrix-mautrix-signal-db'
-matrix_mautrix_signal_db_port: '5432'
-matrix_mautrix_signal_db_database: ''
+matrix_mautrix_signal_database_username: 'matrix_mautrix_signal'
+matrix_mautrix_signal_database_password: 'some-password'
+matrix_mautrix_signal_database_hostname: 'matrix-postgres'
+matrix_mautrix_signal_database_port: 5432
+matrix_mautrix_signal_database_name: 'matrix_mautrix_signal'
 
-matrix_mautrix_signal_db_url: "postgres://{{ matrix_mautrix_signal_db_user }}:{{ matrix_mautrix_signal_db_password }}@{{ matrix_mautrix_signal_db_host }}:{{ matrix_mautrix_signal_db_port }}/{{ matrix_mautrix_signal_db_database }}"
+matrix_mautrix_signal_database_connection_string: 'postgres://{{ matrix_mautrix_signal_database_username }}:{{ matrix_mautrix_signal_database_password }}@{{ matrix_mautrix_signal_database_hostname }}:{{ matrix_mautrix_signal_database_port }}/{{ matrix_mautrix_signal_database_name }}'
+
+matrix_mautrix_signal_appservice_database: "{{
+ 	{
+ 		'postgres': matrix_mautrix_facebook_database_connection_string,
+ 	}[matrix_mautrix_signal_database_engine]
+ }}"
 
 # Can be set to enable automatic double-puppeting via Shared Secret Auth (https://github.com/devture/matrix-synapse-shared-secret-auth).
 matrix_mautrix_signal_login_shared_secret: ''
@@ -61,15 +72,6 @@ matrix_mautrix_signal_login_shared_secret: ''
 # For a more advanced customization, you can extend the default (see `matrix_mautrix_signal_configuration_extension_yaml`)
 # or completely replace this variable with your own template.
 matrix_mautrix_signal_configuration_yaml: "{{ lookup('template', 'templates/config.yaml.j2') }}"
-
-# Permitted values:
-#       user - Use the bridge with puppeting.
-#      admin - Use and administrate the bridge.
-# Permitted keys:
-#        * - All Matrix users
-#   domain - All users on that homeserver
-#     mxid - Specific user
-matrix_mautrix_signal_configuration_permissions: {}
 
 matrix_mautrix_signal_configuration_extension_yaml: |
   # Your custom YAML configuration goes here.
@@ -89,3 +91,5 @@ matrix_mautrix_signal_configuration: "{{ matrix_mautrix_signal_configuration_yam
 matrix_mautrix_signal_registration_yaml: "{{ lookup('template', 'templates/registration.yaml.j2') }}"
 
 matrix_mautrix_signal_registration: "{{ matrix_mautrix_signal_registration_yaml|from_yaml }}"
+
+matrix_mautrix_signal_log_level: 'DEBUG'
