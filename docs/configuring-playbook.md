@@ -33,7 +33,9 @@ When you're done with all the configuration you'd like to do, continue with [Ins
 
 - [Setting up the Jitsi video-conferencing platform](configuring-playbook-jitsi.md) (optional)
 
-- [Setting Dynamic DNS](configuring-playbook-dynamic-dns.md) (optional)
+- [Setting up Dynamic DNS](configuring-playbook-dynamic-dns.md) (optional)
+
+- [Enabling metrics and graphs (Prometheus, Grafana) for your Matrix server](configuring-playbook-prometheus-grafana.md) (optional)
 
 ### Core service adjustments
 
@@ -94,6 +96,8 @@ When you're done with all the configuration you'd like to do, continue with [Ins
 
 - [Setting up Mautrix Hangouts bridging](configuring-playbook-bridge-mautrix-hangouts.md) (optional)
 
+- [Setting up Mautrix Instagram bridging](configuring-playbook-bridge-mautrix-instagram.md) (optional)
+
 - [Setting up Mautrix Signal bridging](configuring-playbook-bridge-mautrix-signal.md) (optional)
 
 - [Setting up Appservice IRC bridging](configuring-playbook-bridge-appservice-irc.md) (optional)
@@ -113,6 +117,8 @@ When you're done with all the configuration you'd like to do, continue with [Ins
 - [Setting up MX Puppet Twitter bridging](configuring-playbook-bridge-mx-puppet-twitter.md) (optional)
 
 - [Setting up MX Puppet Discord bridging](configuring-playbook-bridge-mx-puppet-discord.md) (optional)
+
+- [Setting up MX Puppet GroupMe bridging](configuring-playbook-bridge-mx-puppet-groupme.md) (optional)
 
 - [Setting up MX Puppet Steam bridging](configuring-playbook-bridge-mx-puppet-steam.md) (optional)
 

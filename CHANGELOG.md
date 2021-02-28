@@ -1,3 +1,52 @@
+# 2021-02-19
+
+## GroupMe bridging support via mx-puppet-groupme
+
+Thanks to [Cody Neiman](https://github.com/xangelix), the playbook can now install the [mx-puppet-groupme](https://gitlab.com/robintown/mx-puppet-groupme) bridge for bridging to [GroupMe](https://groupme.com).
+
+This brings the total number of bridges supported by the playbook up to 18. See all supported bridges [here](docs/configuring-playbook.md#bridging-other-networks).
+
+To get started, follow our [Setting up MX Puppet GroupMe](docs/configuring-playbook-bridge-mx-puppet-groupme.md) docs.
+
+## Mautrix Instagram bridging support
+
+The playbook now supports bridging with [Instagram](https://www.instagram.com/) by installing the [mautrix-instagram](https://github.com/tulir/mautrix-instagram) bridge. This playbook functionality is available thanks to [@MarcProe](https://github.com/MarcProe).
+
+Additional details are available in [Setting up Mautrix Instagram bridging](docs/configuring-playbook-bridge-mautrix-instagram.md).
+
+## Synapse workers support
+
+After [lots and lots of work](https://github.com/spantaleev/matrix-docker-ansible-deploy/pull/456) (done over many months by [Marcel Partap](https://github.com/eMPee584), [Max Klenk](https://github.com/maxklenk), a few others from the [Technical University of Dresden, Germany](https://tu-dresden.de/) and various other contributors), support for Synapse workers has finally landed.
+
+Having support for workers makes the playbook suitable for larger homeserver deployments.
+
+Our setup is not yet perfect (we don't support all types of workers; scaling some of them (like `pusher`, `federation_sender`) beyond a single instance is not yet supported). Still, it's a great start and can already power homeservers with thousands of users, like the [Matrix deployment at TU Dresden](https://doc.matrix.tu-dresden.de/en/) discussed in [Matrix Live S06E09 - TU Dresden on their Matrix deployment](https://www.youtube.com/watch?v=UHJX2pmT2gk).
+
+By default, workers are disabled and Synapse runs as a single process (homeservers don't necessarily need the complexity and increased memory requirements of running a worker-based setup).
+
+To enable Synapse workers, follow our [Load balancing with workers](docs/configuring-playbook-synapse.md#load-balancing-with-workers) documentation.
+
+
+# 2021-02-12
+
+## (Potential Breaking Change) Monitoring/metrics support using Prometheus and Grafana
+
+Thanks to [@Peetz0r](https://github.com/Peetz0r), the playbook can now install a bunch of tools for monitoring your Matrix server: the [Prometheus](https://prometheus.io) time-series database server, the Prometheus [node-exporter](https://prometheus.io/docs/guides/node-exporter/) host metrics exporter, and the [Grafana](https://grafana.com/) web UI.
+
+To get get these installed, follow our [Enabling metrics and graphs (Prometheus, Grafana) for your Matrix server](docs/configuring-playbook-prometheus-grafana.md) docs page.
+
+This update comes with a **potential breaking change** for people who were already exposing Synapse metrics (for consumption via another Prometheus installation). From now on, `matrix_synapse_metrics_enabled: true` no longer exposes metrics publicly via matrix-nginx-proxy (at `https://matrix.DOMAIN/_synapse/metrics`). To do so, you'd need to explicitly set `matrix_nginx_proxy_proxy_synapse_metrics: true`.
+
+
+# 2021-01-31
+
+## Etherpad support
+
+Thanks to [@pushytoxin](https://github.com/pushytoxin), the playbook can now install the [Etherpad](https://etherpad.org) realtime collaborative text editor. It can be used in a [Jitsi](https://jitsi.org/) audio/video call or integrated as a widget into Matrix chat rooms via the [Dimension](https://dimension.t2bot.io) integration manager.
+
+To get it installed, follow [our Etherpad docs page](docs/configuring-playbook-etherpad.md).
+
+
 # 2021-01-22
 
 ## (Breaking Change) Postgres changes that require manual intervention
