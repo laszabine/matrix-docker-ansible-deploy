@@ -33,7 +33,7 @@
     - matrix-bridge-mx-puppet-instagram
     - matrix-bridge-sms
     - matrix-bot-matrix-reminder-bot
-    - matrix-maubot
+    - matrix-bot-maubot
     - matrix-bot-go-neb
     - matrix-bot-mjolnir
     - matrix-synapse
