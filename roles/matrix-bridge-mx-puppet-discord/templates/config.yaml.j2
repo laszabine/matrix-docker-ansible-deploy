@@ -9,17 +9,17 @@ bridge:
   domain: {{ matrix_mx_puppet_discord_homeserver_domain }}
   # Reachable URL of the Matrix homeserver
   homeserverUrl: {{ matrix_mx_puppet_discord_homeserver_address }}
+  # Optionally specify a different media URL used for the media store
+  #
+  # This is where Discord will download user profile pictures and media
+  # from
+  mediaUrl: {{ matrix_mx_puppet_discord_bridge_mediaUrl }}
   {% if matrix_mx_puppet_discord_login_shared_secret != '' %}
   loginSharedSecretMap:
     {{ matrix_domain }}: {{ matrix_mx_puppet_discord_login_shared_secret }}
   {% endif %}
   # Display name of the bridge bot
   displayname: Discord Puppet Bridge
-  # Optionally specify a different media URL used for the media store
-  #
-  # This is where Discord will download user profile pictures and media
-  # from
-  #mediaUrl: https://external-url.org
 
 presence:
   # Bridge Discord online/offline status
@@ -100,15 +100,18 @@ namePatterns:
   group: :name
 
 database:
+{% if matrix_mx_puppet_discord_database_engine == 'sqlite' %}
+  # Use SQLite3 as a database backend
+  # The name of the database file
+  filename: {{ matrix_mx_puppet_discord_sqlite_database_path_in_container|to_json }}
+{% else %}
   # Use Postgres as a database backend
   # If set, will be used instead of SQLite3
   # Connection string to connect to the Postgres instance
   # with username "user", password "pass", host "localhost" and database name "dbname".
   # Modify each value as necessary
-  #connString: "postgres://user:pass@localhost/dbname?sslmode=disable"
-  # Use SQLite3 as a database backend
-  # The name of the database file
-  filename: /data/database.db
+  connString: {{ matrix_mx_puppet_discord_database_connection_string|to_json }}
+{% endif %}
 
 logging:
   # Log level of console output
@@ -119,20 +122,4 @@ logging:
   lineDateFormat: MMM-D HH:mm:ss.SSS
   # Logging files
   # Log files are rotated daily by default
-  files:
-    # Log file path
-    - file: "/data/bridge.log"
-      # Log level for this file
-      # Allowed values starting with most verbose:
-      # silly, debug, verbose, info, warn, error
-      level: info
-      # Date and time formatting
-      datePattern: YYYY-MM-DD
-      # Maximum number of logs to keep.
-      # This can be a number of files or number of days.
-      # If using days, add 'd' as a suffix
-      maxFiles: 14d
-      # Maximum size of the file after which it will rotate. This can be a
-      # number of bytes, or units of kb, mb, and gb. If using the units, add
-      # 'k', 'm', or 'g' as the suffix
-      maxSize: 50m
+  files: []

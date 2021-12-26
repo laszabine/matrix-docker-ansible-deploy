@@ -3,27 +3,39 @@
 # Format examples:
 #   SQLite:   sqlite:///filename.db
 #   Postgres: postgres://username:password@hostname/dbname
-database: {{ matrix_maubot_database_url }}
+database: {{ matrix_bot_maubot_storage_database|to_json }}
+
+# Database for encryption data.
+crypto_database:
+    # Type of database. Either "default", "pickle" or "postgres".
+    # When set to default, using SQLite as the main database will use pickle as the crypto database
+    # and using Postgres as the main database will use the same one as the crypto database.
+    #
+    # When using pickle, individual crypto databases are stored in the pickle_dir directory.
+    # When using non-default postgres, postgres_uri is used to connect to postgres.
+    #
+    # WARNING: The pickle database is dangerous and should not be used in production.
+    type: default
+    postgres_uri: {{ matrix_bot_maubot_storage_database|to_json }}
+    pickle_dir: {{ matrix_bot_maubot_container_data_dir }}/crypto
 
 plugin_directories:
     # The directory where uploaded new plugins should be stored.
-    upload: {{ matrix_maubot_container_data_dir }}/plugins
+    upload: {{ matrix_bot_maubot_container_data_dir }}/plugins
     # The directories from which plugins should be loaded.
     # Duplicate plugin IDs will be moved to the trash.
     load:
-    - {{ matrix_maubot_container_data_dir }}/plugins
+    - {{ matrix_bot_maubot_container_data_dir }}/plugins
     # The directory where old plugin versions and conflicting plugins should be moved.
     # Set to "delete" to delete files immediately.
-    trash: {{ matrix_maubot_container_data_dir }}/trash
+    trash: {{ matrix_bot_maubot_container_data_dir }}/trash
     # The directory where plugin databases should be stored.
-    db: {{ matrix_maubot_container_data_dir }}/plugins
+    db: {{ matrix_bot_maubot_container_data_dir }}/plugins
 
 server:
     # The IP and port to listen to.
-    hostname: {{ matrix_maubot_management_hostname }}
-    port: {{ matrix_maubot_management_port }}
-    # Public base URL where the server is visible.
-    public_url: https://matrix.{{ matrix_domain }}
+    hostname: {{ matrix_bot_maubot_management_hostname }}
+    port: {{ matrix_bot_maubot_management_port }}
     # The base management API path.
     base_path: /_matrix/maubot/v1
     # The base path for the UI.
@@ -37,30 +49,19 @@ server:
     # Set to "generate" to generate and save a new token at startup.
     unshared_secret: generate
 
-{% if matrix_maubot_registration_shared_secret %}
+{% if matrix_bot_maubot_shared_secret %}
 # Shared registration secrets to allow registering new users from the management UI
 registration_secrets:
     {{ matrix_domain }}:
         # Client-server API URL
-        url: {{ matrix_maubot_cs_url }}
+        url: {{ matrix_bot_maubot_cs_url }}
         # registration_shared_secret from synapse config
-        secret: {{ matrix_maubot_registration_shared_secret }}
-    matrix.{{ matrix_domain }}:
-        # Client-server API URL
-        url: {{ matrix_maubot_cs_url }}
-        # registration_shared_secret from synapse config
-        secret: {{ matrix_maubot_registration_shared_secret }}
+        secret: {{ matrix_bot_maubot_registration_shared_secret }}
 {% endif %}
 
 # List of administrator users. Plaintext passwords will be bcrypted on startup. Set empty password
 # to prevent normal login. Root is a special user that can't have a password and will always exist.
-admins:
-    root: ""
-{% if matrix_maubot_admins %}
-{% for x in matrix_maubot_admins %}
-    "{{ x.user }}": "{{ x.password }}"
-{% endfor %}
-{% endif %}
+admins: {{ matrix_bot_maubot_admins | combine( {"root": ""} ) }}
 
 # API feature switches.
 api_features:
@@ -85,12 +86,6 @@ logging:
         precise:
             format: "[%(asctime)s] [%(levelname)s@%(name)s] %(message)s"
     handlers:
-        file:
-            class: logging.handlers.RotatingFileHandler
-            formatter: precise
-            filename: /var/log/maubot.log
-            maxBytes: 10485760
-            backupCount: 10
         console:
             class: logging.StreamHandler
             formatter: precise
@@ -103,4 +98,4 @@ logging:
             level: INFO
     root:
         level: DEBUG
-        handlers: [file, console]
+        handlers: [console]

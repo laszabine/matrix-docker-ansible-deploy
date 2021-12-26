@@ -55,6 +55,8 @@ Note that if your nginx version is old, it might not like our default choice of 
 matrix_nginx_proxy_ssl_protocols: "TLSv1.2"
 ```
 
+If you are experiencing issues, try updating to a newer version of Nginx. As a data point in May 2021 a user reported that Nginx 1.14.2 was not working for them. They were getting errors about socket leaks. Updating to Nginx 1.19 fixed their issue.
+
 
 ### Using your own external Apache webserver
 
@@ -62,14 +64,14 @@ Once you've followed the [Preparation](#preparation) guide above, you can take a
 
 ### Using your own external caddy webserver
 
-After following  the [Preparation](#preparation) guide above, you can take a look at the [examples/caddy](../examples/caddy) directory for a sample configuration.
+After following  the [Preparation](#preparation) guide above, you can take a look at the [examples/caddy](../examples/caddy) directory and [examples/caddy2](../examples/caddy2) directory for a sample configuration for Caddy v1 and v2, respectively.
 
 ### Using your own HAproxy reverse proxy
 After following  the [Preparation](#preparation) guide above, you can take a look at the [examples/haproxy](../examples/haproxy) directory for a sample configuration. In this case HAproxy is used as a reverse proxy and a simple Nginx container is used to serve statically `.well-known` files.
 
 ### Using another external webserver
 
-Feel free to look at the [examples/apache](../examples/apache) directory, or the [template files in the matrix-nginx-proxy role](../roles/matrix-nginx-proxy/templates/conf.d/).
+Feel free to look at the [examples/apache](../examples/apache) directory, or the [template files in the matrix-nginx-proxy role](../roles/matrix-nginx-proxy/templates/nginx/conf.d/).
 
 
 ## Method 2: Fronting the integrated nginx reverse-proxy webserver with another reverse-proxy
@@ -106,6 +108,12 @@ matrix_nginx_proxy_container_federation_host_bind_port: '127.0.0.1:8449'
 # Since we don't obtain any certificates (`matrix_ssl_retrieval_method: none` above), it won't work by default.
 # An alternative is to tweak some of: `matrix_coturn_tls_enabled`, `matrix_coturn_tls_cert_path` and `matrix_coturn_tls_key_path`.
 matrix_coturn_enabled: false
+
+# Trust the reverse proxy to send the correct `X-Forwarded-Proto` header as it is handling the SSL connection.
+matrix_nginx_proxy_trust_forwarded_proto: true
+
+# Trust and use the other reverse proxy's `X-Forwarded-For` header.
+matrix_nginx_proxy_x_forwarded_for: '$proxy_add_x_forwarded_for'
 ```
 
 With this, nginx would still be in use, but it would not bother with anything SSL related or with taking up public ports.
@@ -113,7 +121,7 @@ With this, nginx would still be in use, but it would not bother with anything SS
 All services would be served locally on `127.0.0.1:81` and `127.0.0.1:8449` (as per the example configuration above).
 
 You can then set up another reverse-proxy server on ports 80/443/8448 for all of the expected domains and make traffic go to these local ports.
-The expected domains vary depending on the services you have enabled (`matrix.DOMAIN` for sure; `element.DOMAIN` and `dimension.DOMAIN` are optional).
+The expected domains vary depending on the services you have enabled (`matrix.DOMAIN` for sure; `element.DOMAIN`, `dimension.DOMAIN` and `jitsi.DOMAIN` are optional).
 
 ### Sample configuration for running behind Traefik 2.0
 
@@ -131,6 +139,12 @@ matrix_nginx_proxy_https_enabled: false
 matrix_nginx_proxy_container_http_host_bind_port: ''
 matrix_nginx_proxy_container_federation_host_bind_port: ''
 
+# Trust the reverse proxy to send the correct `X-Forwarded-Proto` header as it is handling the SSL connection.
+matrix_nginx_proxy_trust_forwarded_proto: true
+
+# Trust and use the other reverse proxy's `X-Forwarded-For` header.
+matrix_nginx_proxy_x_forwarded_for: '$proxy_add_x_forwarded_for'
+
 # Disable Coturn because it needs SSL certs
 # (Clients can, though exposing IP address, use Matrix.org TURN)
 matrix_coturn_enabled: false
@@ -144,7 +158,7 @@ matrix_nginx_proxy_container_extra_arguments:
   - '--label "traefik.enable=true"'
 
   # The Nginx proxy container will receive traffic from these subdomains
-  - '--label "traefik.http.routers.matrix-nginx-proxy.rule=Host(`{{ matrix_server_fqn_matrix }}`,`{{ matrix_server_fqn_element }}`,`{{ matrix_server_fqn_dimension }}`)"'
+  - '--label "traefik.http.routers.matrix-nginx-proxy.rule=Host(`{{ matrix_server_fqn_matrix }}`,`{{ matrix_server_fqn_element }}`,`{{ matrix_server_fqn_dimension }}`,`{{ matrix_server_fqn_jitsi }}`)"'
 
   # (The 'web-secure' entrypoint must bind to port 443 in Traefik config)
   - '--label "traefik.http.routers.matrix-nginx-proxy.entrypoints=web-secure"'
@@ -172,7 +186,7 @@ matrix_synapse_container_extra_arguments:
   - '--label "traefik.http.services.matrix-synapse.loadbalancer.server.port=8048"'
 ```
 
-This method uses labels attached to the Nginx and Synapse containers to provide the Traefik Docker provider with the information it needs to proxy `matrix.DOMAIN`, `element.DOMAIN`, and `dimension.DOMAIN`. Some [static configuration](https://docs.traefik.io/v2.0/reference/static-configuration/file/) is required in Traefik; namely, having endpoints on ports 443 and 8448 and having a certificate resolver.
+This method uses labels attached to the Nginx and Synapse containers to provide the Traefik Docker provider with the information it needs to proxy `matrix.DOMAIN`, `element.DOMAIN`, `dimension.DOMAIN` and `jitsi.DOMAIN`. Some [static configuration](https://docs.traefik.io/v2.0/reference/static-configuration/file/) is required in Traefik; namely, having endpoints on ports 443 and 8448 and having a certificate resolver.
 
 Note that this configuration on its own does **not** redirect traffic on port 80 (plain HTTP) to port 443 for HTTPS, which may cause some issues, since the built-in Nginx proxy usually does this. If you are not already doing this in Traefik, it can be added to Traefik in a [file provider](https://docs.traefik.io/v2.0/providers/file/) as follows:
 
@@ -192,4 +206,39 @@ Note that this configuration on its own does **not** redirect traffic on port 80
     [http.middlewares.https.redirectscheme]
       scheme = "https"
       permanent = true
+```
+
+You can use the following `docker-compose.yml` as example to launch Traefik.
+
+```yaml
+version: "3.3"
+
+services:
+
+  traefik:
+    image: "traefik:v2.3"
+    restart: always
+    container_name: "traefik"
+    networks:
+      - traefik
+    command:
+      - "--api.insecure=true"
+      - "--providers.docker=true"
+      - "--providers.docker.network=traefik"
+      - "--providers.docker.exposedbydefault=false"
+      - "--entrypoints.web-secure.address=:443"
+      - "--entrypoints.synapse.address=:8448"
+      - "--certificatesresolvers.default.acme.tlschallenge=true"
+      - "--certificatesresolvers.default.acme.email=YOUR EMAIL"
+      - "--certificatesresolvers.default.acme.storage=/letsencrypt/acme.json"
+    ports:
+      - "443:443"
+      - "8448:8448"
+    volumes:
+      - "./letsencrypt:/letsencrypt"
+      - "/var/run/docker.sock:/var/run/docker.sock:ro"
+
+networks:
+  traefik:
+    external: true
 ```
