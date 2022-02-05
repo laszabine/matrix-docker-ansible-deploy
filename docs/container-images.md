@@ -11,7 +11,7 @@ These services are enabled and used by default, but you can turn them off, if yo
 
 - [matrixdotorg/synapse](https://hub.docker.com/r/matrixdotorg/synapse/) - the official [Synapse](https://github.com/matrix-org/synapse) Matrix homeserver (optional)
 
-- [instrumentisto/coturn](https://hub.docker.com/r/instrumentisto/coturn/) - the [Coturn](https://github.com/coturn/coturn) STUN/TURN server (optional)
+- [coturn/coturn](https://hub.docker.com/r/coturn/coturn/) - the [Coturn](https://github.com/coturn/coturn) STUN/TURN server (optional)
 
 - [vectorim/element-web](https://hub.docker.com/r/vectorim/element-web/) - the [Element](https://element.io/) web client (optional)
 
@@ -30,6 +30,8 @@ These services are enabled and used by default, but you can turn them off, if yo
 
 These services are not part of our default installation, but can be enabled by [configuring the playbook](configuring-playbook.md) (either before the initial installation or any time later):
 
+- [matrixdotorg/dendrite-monolith](https://hub.docker.com/r/matrixdotorg/dendrite-monolith/) - the official [Dendrite](https://github.com/matrix-org/dendrite) Matrix homeserver (optional)
+
 - [ewoutp/goofys](https://hub.docker.com/r/ewoutp/goofys/) - the [Goofys](https://github.com/kahing/goofys) Amazon [S3](https://aws.amazon.com/s3/) file-system-mounting program (optional)
 
 - [etherpad/etherpad](https://hub.docker.com/r/etherpad/etherpad/) - the [Etherpad](https://etherpad.org) realtime collaborative text editor that can be used in a Jitsi audio/video call or integrated as a widget into Matrix chat rooms via the Dimension integration manager (optional)
@@ -40,17 +42,21 @@ These services are not part of our default installation, but can be enabled by [
 
 - [zeratax/matrix-registration](https://hub.docker.com/r/devture/zeratax-matrix-registration/) - [matrix-registration](https://github.com/ZerataX/matrix-registration): a simple python application to have a token based matrix registration (optional)
 
-- [tulir/mautrix-telegram](https://mau.dev/tulir/mautrix-telegram/container_registry) - the [mautrix-telegram](https://github.com/tulir/mautrix-telegram) bridge to [Telegram](https://telegram.org/) (optional)
+- [mautrix/telegram](https://mau.dev/mautrix/telegram/container_registry) - the [mautrix-telegram](https://github.com/mautrix/telegram) bridge to [Telegram](https://telegram.org/) (optional)
 
-- [tulir/mautrix-whatsapp](https://mau.dev/tulir/mautrix-whatsapp/container_registry) - the [mautrix-whatsapp](https://github.com/tulir/mautrix-whatsapp) bridge to [Whatsapp](https://www.whatsapp.com/) (optional)
+- [mautrix/whatsapp](https://mau.dev/mautrix/whatsapp/container_registry) - the [mautrix-whatsapp](https://github.com/mautrix/whatsapp) bridge to [Whatsapp](https://www.whatsapp.com/) (optional)
 
-- [tulir/mautrix-facebook](https://mau.dev/tulir/mautrix-facebook/container_registry) - the [mautrix-facebook](https://github.com/tulir/mautrix-facebook) bridge to [Facebook](https://facebook.com/) (optional)
+- [mautrix/facebook](https://mau.dev/mautrix/facebook/container_registry) - the [mautrix-facebook](https://github.com/mautrix/facebook) bridge to [Facebook](https://facebook.com/) (optional)
 
-- [tulir/mautrix-hangouts](https://mau.dev/tulir/mautrix-hangouts/container_registry) - the [mautrix-hangouts](https://github.com/tulir/mautrix-hangouts) bridge to [Google Hangouts](https://en.wikipedia.org/wiki/Google_Hangouts) (optional)
+- [mautrix/twitter](https://mau.dev/mautrix/twitter/container_registry) - the [mautrix-twitter](https://github.com/mautrix/twitter) bridge to [Twitter](https://twitter.com/) (optional)
 
-- [tulir/mautrix-instagram](https://mau.dev/tulir/mautrix-instagram/container_registry) - the [mautrix-instagram](https://github.com/tulir/mautrix-instagram) bridge to [Instagram](https://instagram.com/) (optional)
+- [mautrix/hangouts](https://mau.dev/mautrix/hangouts/container_registry) - the [mautrix-hangouts](https://github.com/mautrix/hangouts) bridge to [Google Hangouts](https://en.wikipedia.org/wiki/Google_Hangouts) (optional)
 
-- [tulir/mautrix-signal](https://mau.dev/tulir/mautrix-signal/container_registry) - the [mautrix-signal](https://github.com/tulir/mautrix-signal) bridge to [Signal](https://www.signal.org/) (optional)
+- [mautrix/googlechat](https://mau.dev/mautrix/googlechat/container_registry) - the [mautrix-googlechat](https://github.com/mautrix/googlechat) bridge to [Google Chat](https://en.wikipedia.org/wiki/Google_Chat) (optional)
+
+- [mautrix/instagram](https://mau.dev/mautrix/instagram/container_registry) - the [mautrix-instagram](https://github.com/mautrix/instagram) bridge to [Instagram](https://instagram.com/) (optional)
+
+- [mautrix/signal](https://mau.dev/mautrix/signal/container_registry) - the [mautrix-signal](https://github.com/mautrix/signal) bridge to [Signal](https://www.signal.org/) (optional)
 
 - [matrixdotorg/matrix-appservice-irc](https://hub.docker.com/r/matrixdotorg/matrix-appservice-irc) - the [matrix-appservice-irc](https://github.com/matrix-org/matrix-appservice-irc) bridge to [IRC](https://wikipedia.org/wiki/Internet_Relay_Chat) (optional)
 
@@ -88,6 +94,12 @@ These services are not part of our default installation, but can be enabled by [
 
 - [anoa/matrix-reminder-bot](https://hub.docker.com/r/anoa/matrix-reminder-bot) - the [matrix-reminder-bot](https://github.com/anoadragon453/matrix-reminder-bot) bot for one-off & recurring reminders and alarms (optional)
 
+- [etke.cc/honoroit](https://gitlab.com/etke.cc/honoroit/container_registry) - the [honoroit](https://gitlab.com/etke.cc/honoroit) helpdesk bot (optional)
+
+- [matrixdotorg/go-neb](https://hub.docker.com/r/matrixdotorg/go-neb) - the [Go-NEB](https://github.com/matrix-org/go-neb) bot (optional)
+
+- [matrixdotorg/mjolnir](https://hub.docker.com/r/matrixdotorg/mjolnir) - the [mjolnir](https://github.com/matrix-org/mjolnir) moderation bot (optional)
+
 - [awesometechnologies/synapse-admin](https://hub.docker.com/r/awesometechnologies/synapse-admin) - the [synapse-admin](https://github.com/Awesome-Technologies/synapse-admin) web UI tool for administrating users and rooms on your Matrix server (optional)
 
 - [prom/prometheus](https://hub.docker.com/r/prom/prometheus/) - [Prometheus](https://github.com/prometheus/prometheus/) is a systems and service monitoring system
@@ -95,3 +107,5 @@ These services are not part of our default installation, but can be enabled by [
 - [prom/node-exporter](https://hub.docker.com/r/prom/node-exporter/) - [Prometheus Node Exporter](https://github.com/prometheus/node_exporter/) is an addon for Prometheus that gathers standard system metrics
 
 - [grafana/grafana](https://hub.docker.com/r/grafana/grafana/) - [Grafana](https://github.com/grafana/grafana/) is a graphing tool that works well with the above two images. Our playbook also adds two dashboards for [Synapse](https://github.com/matrix-org/synapse/tree/master/contrib/grafana) and  [Node Exporter](https://github.com/rfrail3/grafana-dashboards)
+
+- [matrixdotorg/sygnal](https://hub.docker.com/r/matrixdotorg/sygnal/) - [Sygnal](https://github.com/matrix-org/sygnal) is a reference Push Gateway for Matrix

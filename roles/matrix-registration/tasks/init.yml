@@ -1,3 +1,10 @@
+# See https://github.com/spantaleev/matrix-docker-ansible-deploy/issues/1070
+# and https://github.com/spantaleev/matrix-docker-ansible-deploy/commit/1ab507349c752042d26def3e95884f6df8886b74#commitcomment-51108407
+- name: Fail if trying to self-build on Ansible < 2.8
+  fail:
+    msg: "To self-build the Element image, you should use Ansible 2.8 or higher. See docs/ansible.md"
+  when: "ansible_version.major == 2 and ansible_version.minor < 8 and matrix_registration_container_image_self_build and matrix_registration_enabled"
+
 - set_fact:
     matrix_systemd_services_list: "{{ matrix_systemd_services_list + ['matrix-registration.service'] }}"
   when: matrix_registration_enabled|bool
@@ -8,15 +15,15 @@
       msg: >-
         Trying to append matrix-registration's reverse-proxying configuration to matrix-nginx-proxy,
         but it's pointless since the matrix-nginx-proxy role had already executed.
-        To fix this, please change the order of roles in your plabook,
+        To fix this, please change the order of roles in your playbook,
         so that the matrix-nginx-proxy role would run after the matrix-registration role.
     when: matrix_nginx_proxy_role_executed|default(False)|bool
 
   - name: Generate matrix-registration proxying configuration for matrix-nginx-proxy
     set_fact:
       matrix_registration_matrix_nginx_proxy_configuration: |
-        rewrite ^{{ matrix_registration_public_endpoint }}$ $scheme://$server_name{{ matrix_registration_public_endpoint }}/ permanent;
-        rewrite ^{{ matrix_registration_public_endpoint }}/$ $scheme://$server_name{{ matrix_registration_public_endpoint }}/register redirect;
+        rewrite ^{{ matrix_registration_public_endpoint }}$ {{ matrix_nginx_proxy_x_forwarded_proto_value }}://$server_name{{ matrix_registration_public_endpoint }}/ permanent;
+        rewrite ^{{ matrix_registration_public_endpoint }}/$ {{ matrix_nginx_proxy_x_forwarded_proto_value }}://$server_name{{ matrix_registration_public_endpoint }}/register redirect;
 
         location ~ ^{{ matrix_registration_public_endpoint }}/(.*) {
         {% if matrix_nginx_proxy_enabled|default(False) %}

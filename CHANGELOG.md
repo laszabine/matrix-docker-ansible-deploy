@@ -1,3 +1,213 @@
+# 2022-02-01
+
+## matrix-hookshot bridging support
+
+Thanks to [HarHarLinks](https://github.com/HarHarLinks), the playbook can now install the [matrix-hookshot](https://github.com/Half-Shot/matrix-hookshot) bridge for bridging Matrix to multiple project management services, such as GitHub, GitLab and JIRA.
+See our [Setting up matrix-hookshot](docs/configuring-playbook-bridge-hookshot.md) documentation to get started.
+
+
+# 2022-01-31
+
+## ARM support for matrix-corporal
+
+[matrix-corporal](https://github.com/devture/matrix-corporal) (as of version `2.2.3`) is now published to Docker Hub (see [devture/matrix-corporal](https://hub.docker.com/r/devture/matrix-corporal)) as a multi-arch container image with support for all these platforms: `linux/amd64`, `linux/arm64/v8` and `linux/arm/v7`. The playbook no longer resorts to self-building matrix-corporal on these ARM architectures.
+
+
+# 2022-01-07
+
+## Dendrite support
+
+**TLDR**: We now have optional experimental [Dendrite](https://github.com/matrix-org/dendrite) homeserver support for new installations. **Existing (Synapse) installations need to be updated**, because some internals changed. See [Adapting the configuration for existing Synapse installations](#adapting-the-configuration-for-existing-synapse-installations).
+
+[Jip J. Dekker](https://github.com/Dekker1) did the [initial work](https://github.com/spantaleev/matrix-docker-ansible-deploy/pull/818) of adding [Dendrite](https://github.com/matrix-org/dendrite) support to the playbook back in January 2021. Lots of work (and time) later, Dendrite support is finally ready for testing.
+
+We believe that 2022 will be the year of the non-Synapse Matrix server!
+
+The playbook was previously quite [Synapse](https://github.com/matrix-org/synapse)-centric, but can now accommodate multiple homeserver implementations. Only one homeserver implementation can be active (installed) at a given time.
+
+**Synapse is still the default homeserver implementation** installed by the playbook. A new variable (`matrix_homeserver_implementation`) controls which server implementation is enabled (`synapse` or `dendrite` at the given moment).
+
+### Adapting the configuration for existing Synapse installations
+
+Because the playbook is not so Synapse-centric anymore, a small configuration change is necessary for existing installations to bring them up to date.
+
+The `vars.yml` file for **existing installations will need to be updated** by adding this **additional configuration**:
+
+```yaml
+# All secrets keys are now derived from `matrix_homeserver_generic_secret_key`, not from `matrix_synapse_macaroon_secret_key`.
+# To keep them all the same, define `matrix_homeserver_generic_secret_key` in terms of `matrix_synapse_macaroon_secret_key`.
+# Using a new secret value for this configuration key is also possible and should not cause any problems.
+#
+# Fun fact: new installations (based on the new `examples/vars.yml` file) do this in reverse.
+# That is, the Synapse macaroon secret is derived from `matrix_homeserver_generic_secret_key`.
+matrix_homeserver_generic_secret_key: "{{ matrix_synapse_macaroon_secret_key }}"
+```
+
+### Trying out Dendrite
+
+Finally, **to try out Dendrite**, we recommend that you **use a new server** and the following addition to your `vars.yml` configuration:
+
+```yaml
+matrix_homeserver_implementation: dendrite
+```
+
+**The homeserver implementation of an existing server cannot be changed** (e.g. from Synapse to Dendrite) without data loss.
+
+We're excited to gain support for other homeserver implementations, like [Conduit](https://conduit.rs/), etc!
+
+
+## Honoroit bot support
+
+Thanks to [Aine](https://gitlab.com/etke.cc) of [etke.cc](https://etke.cc/), the playbook can now help you set up [Honoroit](https://gitlab.com/etke.cc/honoroit) - a helpdesk bot.
+
+See our [Setting up Honoroit](docs/configuring-playbook-bot-honoroit.md) documentation to get started.
+
+
+# 2022-01-06
+
+## Cinny support
+
+Thanks to [Aine](https://gitlab.com/etke.cc) of [etke.cc](https://etke.cc/), the playbook now supports [Cinny](https://cinny.in/) - a new simple, elegant and secure Matrix client.
+
+By default, we still install Element. Still, people who'd like to try Cinny out can now install it via the playbook.
+
+Additional details are available in [Setting up Cinny](docs/configuring-playbook-client-cinny.md).
+
+
+# 2021-12-22
+
+## Twitter bridging support via mautrix-twitter
+
+Thanks to [Matthew Cengia](https://github.com/mattcen) and [Shreyas Ajjarapu](https://github.com/shreyasajj), besides [mx-puppet-twitter](docs/configuring-playbook-bridge-mx-puppet-twitter.md), bridging to [Twitter](https://twitter.com/) can now also happen with [mautrix-twitter](docs/configuring-playbook-bridge-mautrix-twitter.md).
+
+
+# 2021-12-14
+
+## (Security) Users of the Signal bridge may wish to upgrade it to work around log4j vulnerability
+
+Recently, a security vulnerability affecting the Java logging package `log4j` [has been discovered](https://www.huntress.com/blog/rapid-response-critical-rce-vulnerability-is-affecting-java). Software that uses this Java package is potentially vulnerable.
+
+One such piece of software that is part of the playbook is the [mautrix-signal bridge](./docs/configuring-playbook-bridge-mautrix-signal.md), which [has been patched already](https://github.com/spantaleev/matrix-docker-ansible-deploy/pull/1452). If you're running this bridge, you may wish to [upgrade](./docs/maintenance-upgrading-services.md).
+
+
+# 2021-11-11
+
+## Dropped support for Postgres v9.6
+
+Postgres v9.6 reached its end of life today, so the playbook will refuse to run for you if you're still on that version.
+
+Synapse still supports v9.6 (for now), but we're retiring support for it early, to avoid having to maintain support for so many Postgres versions. Users that are still on Postgres v9.6 can easily [upgrade Postgres](docs/maintenance-postgres.md#upgrading-postgresql) via the playbook.
+
+
+# 2021-10-23
+
+## Hangouts bridge no longer updated, superseded by a Googlechat bridge
+
+The mautrix-hangouts bridge is no longer receiving updates upstream and is likely to stop working in the future.
+We still retain support for this bridge in the playbook, but you're encouraged to switch away from it.
+
+There's a new [mautrix-googlechat](https://github.com/mautrix/googlechat) bridge that you can [install using the playbook](docs/configuring-playbook-bridge-mautrix-googlechat.md).
+Your **Hangouts bridge data will not be migrated**, however. You need to start fresh with the new bridge.
+
+
+# 2021-08-23
+
+## LinkedIn bridging support via beeper-linkedin
+
+Thanks to [Alexandar Mechev](https://github.com/apmechev), the playbook can now install the [beeper-linkedin](https://gitlab.com/beeper/linkedin) bridge for bridging to [LinkedIn](https://www.linkedin.com/) Messaging.
+
+This brings the total number of bridges supported by the playbook up to 20. See all supported bridges [here](docs/configuring-playbook.md#bridging-other-networks).
+
+To get started with bridging to LinkedIn, see [Setting up Beeper LinkedIn bridging](docs/configuring-playbook-bridge-beeper-linkedin.md).
+
+
+# 2021-08-20
+
+# Sygnal upgraded - ARM support and no longer requires a database
+
+The [Sygnal](docs/configuring-playbook-sygnal.md) push gateway has been upgraded from `v0.9.0` to `v0.10.1`.
+
+This is an optional component for the playbook, so most of our users wouldn't care about this announcement.
+
+Since this feels like a relatively big (and untested, as of yet) Sygnal change, we're putting up this changelog entry.
+
+The new version is also available for the ARM architecture. It also no longer requires a database anymore.
+If you need to downgrade to the previous version, changing `matrix_sygnal_version` or `matrix_sygnal_docker_image` will not be enough, as we've removed the `database` configuration completely. You'd need to switch to an earlier playbook commit.
+
+
+# 2021-05-21
+
+## Hydrogen support
+
+Thanks to [Aaron Raimist](https://github.com/aaronraimist), the playbook now supports [Hydrogen](https://github.com/vector-im/hydrogen-web) - a new lightweight matrix client with legacy and mobile browser support.
+
+By default, we still install Element, as Hydrogen is still not fully-featured. Still, people who'd like to try Hydrogen out can now install it via the playbook.
+
+Additional details are available in [Setting up Hydrogen](docs/configuring-playbook-client-hydrogen.md).
+
+
+# 2021-05-19
+
+## Heisenbridge support
+
+Thanks to [Toni Spets (hifi)](https://github.com/hifi), the playbook now supports bridging to [IRC](https://en.wikipedia.org/wiki/Internet_Relay_Chat) using yet another bridge (besides matrix-appservice-irc), called [Heisenbridge](https://github.com/hifi/heisenbridge).
+
+Additional details are available in [Setting up Heisenbridge bouncer-style IRC bridging](docs/configuring-playbook-bridge-heisenbridge.md).
+
+
+# 2021-04-16
+
+## Disabling TLSv1 and TLSv1.1 for Coturn
+
+To improve security, we've [removed TLSv1 and TLSv1.1 support](https://github.com/spantaleev/matrix-docker-ansible-deploy/pull/999) from our default [Coturn](https://github.com/coturn/coturn) configuration.
+
+If you need to support old clients, you can re-enable both (or whichever one you need) with the following configuration:
+
+```yaml
+matrix_coturn_tls_v1_enabled: true
+matrix_coturn_tls_v1_1_enabled: true
+```
+
+
+# 2021-04-05
+
+## Automated local Postgres backup support
+
+Thanks to [foxcris](https://github.com/foxcris), the playbook can now make automated local Postgres backups on a fixed schedule using [docker-postgres-backup-local](https://github.com/prodrigestivill/docker-postgres-backup-local).
+
+Additional details are available in [Setting up postgres backup](docs/configuring-playbook-postgres-backup.md).
+
+
+
+# 2021-04-03
+
+## Mjolnir moderation tool (bot) support
+
+Thanks to [Aaron Raimist](https://github.com/aaronraimist), the playbook can now install and configure the [Mjolnir](https://github.com/matrix-org/mjolnir) moderation tool (bot).
+
+Additional details are available in [Setting up Mjolnir](docs/configuring-playbook-bot-mjolnir.md).
+
+
+# 2021-03-20
+
+## Sygnal push gateway support
+
+The playbook can now install the [Sygnal](https://github.com/matrix-org/sygnal) push gateway for you.
+
+This is only useful to people who develop/build their own Matrix client applications.
+
+Additional details are available in our [Setting up Sygnal](docs/configuring-playbook-sygnal.md) docs.
+
+
+# 2021-03-16
+
+## Go-NEB support
+
+Thanks to [Zir0h](https://github.com/Zir0h), the playbook can now install and configure the [Go-NEB](https://github.com/matrix-org/go-neb) bot.
+
+Additional details are available in [Setting up Go-NEB](docs/configuring-playbook-bot-go-neb.md).
+
+
 # 2021-02-19
 
 ## GroupMe bridging support via mx-puppet-groupme
@@ -134,6 +344,8 @@ The fact that we've renamed Synapse's database from `homeserver` to `synapse` (i
 # 2021-01-20
 
 ## (Breaking Change) The mautrix-facebook bridge now requires a Postgres database
+
+**Update from 2021-11-15**: SQLite support has been re-added to the mautrix-facebook bridge in [v0.3.2](https://github.com/mautrix/facebook/releases/tag/v0.3.2). You can ignore this changelog entry.
 
 A new version of the [mautrix-facebook](https://github.com/tulir/mautrix-facebook) bridge has been released. It's a full rewrite of its backend and the bridge now requires Postgres. New versions of the bridge can no longer run on SQLite.
 

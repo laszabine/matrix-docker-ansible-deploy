@@ -11,7 +11,7 @@
 	upstream generic_worker_upstream {
 		# ensures that requests from the same client will always be passed
 		# to the same server (except when this server is unavailable)
-		ip_hash;
+		hash $http_x_forwarded_for;
 
 		{% for worker in generic_workers %}
 			{% if matrix_nginx_proxy_enabled %}
@@ -62,7 +62,9 @@
 
 server {
 	listen 12080;
-	server_name {{ matrix_nginx_proxy_proxy_synapse_hostname }};
+	{% if matrix_nginx_proxy_enabled %}
+		server_name {{ matrix_nginx_proxy_proxy_synapse_hostname }};
+	{% endif %}
 
 	server_tokens off;
 	root /dev/null;
@@ -79,7 +81,6 @@ server {
 			location ~ {{ location }} {
 				proxy_pass http://generic_worker_upstream$request_uri;
 				proxy_set_header Host $host;
-				proxy_set_header X-Forwarded-For $remote_addr;
 			}
 			{% endfor %}
 		{% endif %}
@@ -90,7 +91,6 @@ server {
 			location ~ {{ location }} {
 				proxy_pass http://media_repository_upstream$request_uri;
 				proxy_set_header Host $host;
-				proxy_set_header X-Forwarded-For $remote_addr;
 
 				client_body_buffer_size 25M;
 				client_max_body_size {{ matrix_nginx_proxy_proxy_matrix_client_api_client_max_body_size_mb }}M;
@@ -106,7 +106,6 @@ server {
 			location ~ {{ location }} {
 				proxy_pass http://user_dir_upstream$request_uri;
 				proxy_set_header Host $host;
-				proxy_set_header X-Forwarded-For $remote_addr;
 			}
 			{% endfor %}
 		{% endif %}
@@ -117,15 +116,13 @@ server {
 			location ~ {{ location }} {
 				proxy_pass http://frontend_proxy_upstream$request_uri;
 				proxy_set_header Host $host;
-				proxy_set_header X-Forwarded-For $remote_addr;
 			}
 			{% endfor %}
 			{% if matrix_nginx_proxy_synapse_presence_disabled %}
 			# FIXME: keep in sync with synapse workers documentation manually
-			location ~ ^/_matrix/client/(api/v1|r0|unstable)/presence/[^/]+/status {
+			location ~ ^/_matrix/client/(api/v1|r0|v3|unstable)/presence/[^/]+/status {
 				proxy_pass http://frontend_proxy_upstream$request_uri;
 				proxy_set_header Host $host;
-				proxy_set_header X-Forwarded-For $remote_addr;
 			}
 			{% endif %}
 		{% endif %}
@@ -150,13 +147,30 @@ server {
 		{% endif %}
 
 		proxy_set_header Host $host;
-		proxy_set_header X-Forwarded-For $remote_addr;
 
 		{% if matrix_nginx_proxy_proxy_synapse_metrics_basic_auth_enabled %}
 			auth_basic "protected";
 			auth_basic_user_file /nginx-data/matrix-synapse-metrics-htpasswd;
 		{% endif %}
 	}
+	{% endif %}
+
+	{% if matrix_nginx_proxy_enabled and matrix_nginx_proxy_proxy_synapse_metrics %}
+		{% for worker in matrix_nginx_proxy_proxy_synapse_workers_enabled_list %}
+			{% if worker.metrics_port != 0 %}
+				location /_synapse-worker-{{ worker.type }}-{{ worker.instanceId }}/metrics {
+					resolver 127.0.0.11 valid=5s;
+					set $backend "matrix-synapse-worker-{{ worker.type }}-{{ worker.instanceId }}:{{ worker.metrics_port }}";
+					proxy_pass http://$backend/_synapse/metrics;
+					proxy_set_header Host $host;
+
+					{% if matrix_nginx_proxy_proxy_synapse_metrics_basic_auth_enabled %}
+						auth_basic "protected";
+						auth_basic_user_file /nginx-data/matrix-synapse-metrics-htpasswd;
+					{% endif %}
+				}
+			{% endif %}
+		{% endfor %}
 	{% endif %}
 
 	{# Everything else just goes to the API server ##}
@@ -172,7 +186,6 @@ server {
 		{% endif %}
 
 		proxy_set_header Host $host;
-		proxy_set_header X-Forwarded-For $remote_addr;
 
 		client_body_buffer_size 25M;
 		client_max_body_size {{ matrix_nginx_proxy_proxy_matrix_client_api_client_max_body_size_mb }}M;
@@ -183,8 +196,10 @@ server {
 {% if matrix_nginx_proxy_proxy_synapse_federation_api_enabled %}
 server {
 	listen 12088;
+	{% if matrix_nginx_proxy_enabled %}
+		server_name {{ matrix_nginx_proxy_proxy_synapse_hostname }};
+	{% endif %}
 
-	server_name {{ matrix_nginx_proxy_proxy_synapse_hostname }};
 	server_tokens off;
 
 	root /dev/null;
@@ -199,7 +214,6 @@ server {
 			location ~ {{ location }} {
 				proxy_pass http://generic_worker_upstream$request_uri;
 				proxy_set_header Host $host;
-				proxy_set_header X-Forwarded-For $remote_addr;
 			}
 			{% endfor %}
 		{% endif %}
@@ -209,7 +223,6 @@ server {
 			location ~ {{ location }} {
 				proxy_pass http://media_repository_upstream$request_uri;
 				proxy_set_header Host $host;
-				proxy_set_header X-Forwarded-For $remote_addr;
 
 				client_body_buffer_size 25M;
 				client_max_body_size {{ matrix_nginx_proxy_proxy_matrix_federation_api_client_max_body_size_mb }}M;
@@ -231,7 +244,6 @@ server {
 		{% endif %}
 
 		proxy_set_header Host $host;
-		proxy_set_header X-Forwarded-For $remote_addr;
 
 		client_body_buffer_size 25M;
 		client_max_body_size {{ matrix_nginx_proxy_proxy_matrix_federation_api_client_max_body_size_mb }}M;

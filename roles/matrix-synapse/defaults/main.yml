@@ -7,7 +7,7 @@ matrix_synapse_container_image_self_build: false
 matrix_synapse_container_image_self_build_repo: "https://github.com/matrix-org/synapse.git"
 
 matrix_synapse_docker_image: "{{ matrix_synapse_docker_image_name_prefix }}matrixdotorg/synapse:{{ matrix_synapse_docker_image_tag }}"
-matrix_synapse_docker_image_name_prefix: "{{ 'localhost/' if matrix_synapse_container_image_self_build else 'docker.io/' }}"
+matrix_synapse_docker_image_name_prefix: "{{ 'localhost/' if matrix_synapse_container_image_self_build else matrix_container_global_registry_prefix }}"
 # The if statement below may look silly at times (leading to the same version being returned),
 # but ARM-compatible container images are only released 1-7 hours after a release,
 # so we may often be on different versions for different architectures when new Synapse releases come out.
@@ -15,8 +15,8 @@ matrix_synapse_docker_image_name_prefix: "{{ 'localhost/' if matrix_synapse_cont
 # amd64 gets released first.
 # arm32 relies on self-building, so the same version can be built immediately.
 # arm64 users need to wait for a prebuilt image to become available.
-matrix_synapse_version: v1.28.0
-matrix_synapse_version_arm64: v1.28.0
+matrix_synapse_version: v1.51.0
+matrix_synapse_version_arm64: v1.51.0
 matrix_synapse_docker_image_tag: "{{ matrix_synapse_version if matrix_architecture in ['arm32', 'amd64'] else matrix_synapse_version_arm64 }}"
 matrix_synapse_docker_image_force_pull: "{{ matrix_synapse_docker_image.endswith(':latest') }}"
 
@@ -27,7 +27,13 @@ matrix_synapse_storage_path: "{{ matrix_synapse_base_path }}/storage"
 matrix_synapse_media_store_path: "{{ matrix_synapse_storage_path }}/media-store"
 matrix_synapse_ext_path: "{{ matrix_synapse_base_path }}/ext"
 
-# Controls whether the matrix-synapse container exposes the Client/Server API port (tcp/8008 in the container).
+matrix_synapse_container_client_api_port: 8008
+
+matrix_synapse_container_federation_api_tls_port: 8448
+
+matrix_synapse_container_federation_api_plain_port: 8048
+
+# Controls whether the matrix-synapse container exposes the Client/Server API port (tcp/{{ matrix_synapse_container_client_api_port }} in the container).
 #
 # Takes an "<ip>:<port>" or "<port>" value (e.g. "127.0.0.1:8008"), or empty string to not expose.
 matrix_synapse_container_client_api_host_bind_port: ''
@@ -146,7 +152,7 @@ matrix_synapse_federation_rr_transactions_per_room_per_second: 50
 
 # Controls whether the TLS federation listener is enabled (tcp/8448).
 # Only makes sense if federation is enabled (`matrix_synapse_federation_enabled`).
-# Note that federation may potentially be enabled as non-TLS on tcp/8048 as well.
+# Note that federation may potentially be enabled as non-TLS on `matrix_synapse_container_federation_api_plain_port` as well.
 # If you're serving Synapse behind an HTTPS-capable reverse-proxy,
 # you can disable the TLS listener (`matrix_synapse_tls_federation_listener_enabled: false`).
 matrix_synapse_tls_federation_listener_enabled: true
@@ -170,7 +176,7 @@ matrix_synapse_report_stats: false
 # Controls whether the Matrix server will track presence status (online, offline, unavailable) for users.
 # If users participate in large rooms with many other servers,
 # disabling this will decrease server load significantly.
-matrix_synapse_use_presence: true
+matrix_synapse_presence_enabled: true
 
 # Controls whether accessing the server's public rooms directory can be done without authentication.
 # For private servers, you most likely wish to require authentication,
@@ -180,6 +186,26 @@ matrix_synapse_allow_public_rooms_without_auth: false
 # Controls whether remote servers can fetch this server's public rooms directory via federation.
 # For private servers, you most likely wish to forbid it.
 matrix_synapse_allow_public_rooms_over_federation: false
+
+# Whether to require authentication to retrieve profile data (avatars,
+# display names) of other users through the client API. Defaults to
+# 'false'. Note that profile data is also available via the federation
+# API, so this setting is of limited value if federation is enabled on
+# the server.
+matrix_synapse_require_auth_for_profile_requests: false
+
+# Set to true to require a user to share a room with another user in order
+# to retrieve their profile information. Only checked on Client-Server
+# requests. Profile requests from other servers should be checked by the
+# requesting server. Defaults to 'false'.
+matrix_synapse_limit_profile_requests_to_users_who_share_rooms: false
+
+# Set to false to prevent a user's profile data from being retrieved and
+# displayed in a room until they have joined it. By default, a user's
+# profile data is included in an invite event, regardless of the values
+# of the above two settings, and whether or not the users share a server.
+# Defaults to 'true'.
+matrix_synapse_include_profile_data_on_invite: true
 
 # Controls whether people with access to the homeserver can register by themselves.
 matrix_synapse_enable_registration: false
@@ -294,6 +320,9 @@ matrix_synapse_push_include_content: true
 # If url previews should be generated. This will cause a request from Synapse to
 # URLs shared by users.
 matrix_synapse_url_preview_enabled: true
+
+# A list of values for the Accept-Language HTTP header used when downloading webpages during URL preview generation
+matrix_url_preview_accept_language: ['en-US', 'en']
 
 # Enable exposure of metrics to Prometheus
 # See https://github.com/matrix-org/synapse/blob/master/docs/metrics-howto.md
@@ -433,7 +462,9 @@ matrix_synapse_replication_http_port: 9093
 matrix_synapse_sentry_dsn: ""
 
 # Postgres database information
+matrix_synapse_database_txn_limit: 0
 matrix_synapse_database_host: "matrix-postgres"
+matrix_synapse_database_port: 5432
 matrix_synapse_database_user: "synapse"
 matrix_synapse_database_password: ""
 matrix_synapse_database_database: "synapse"
@@ -445,9 +476,12 @@ matrix_synapse_turn_allow_guests: False
 matrix_synapse_email_enabled: false
 matrix_synapse_email_smtp_host: ""
 matrix_synapse_email_smtp_port: 587
+matrix_synapse_email_smtp_user: ""
+matrix_synapse_email_smtp_pass: ""
 matrix_synapse_email_smtp_require_transport_security: false
 matrix_synapse_email_notif_from: "Matrix <matrix@{{ matrix_domain }}>"
 matrix_synapse_email_client_base_url: "https://{{ matrix_server_fqn_element }}"
+matrix_synapse_email_invite_client_location: "https://app.element.io"
 
 
 # Enable this to activate the REST auth password provider module.
@@ -476,13 +510,36 @@ matrix_synapse_ext_password_provider_ldap_attributes_name: "cn"
 matrix_synapse_ext_password_provider_ldap_bind_dn: ""
 matrix_synapse_ext_password_provider_ldap_bind_password: ""
 matrix_synapse_ext_password_provider_ldap_filter: ""
+matrix_synapse_ext_password_provider_ldap_active_directory: false
+matrix_synapse_ext_password_provider_ldap_default_domain: ""
 
 # Enable this to activate the Synapse Antispam spam-checker module.
 # See: https://github.com/t2bot/synapse-simple-antispam
 matrix_synapse_ext_spam_checker_synapse_simple_antispam_enabled: false
 matrix_synapse_ext_spam_checker_synapse_simple_antispam_git_repository_url: "https://github.com/t2bot/synapse-simple-antispam"
-matrix_synapse_ext_spam_checker_synapse_simple_antispam_git_version: "f058d9ce2c7d4195ae461dcdd02df11a2d06a36b"
+matrix_synapse_ext_spam_checker_synapse_simple_antispam_git_version: "5ab711971e3a4541a7a40310ff85e17f8262cc05"
 matrix_synapse_ext_spam_checker_synapse_simple_antispam_config_blocked_homeservers: []
+
+# Enable this to activate the Mjolnir Antispam spam-checker module.
+# See: https://github.com/matrix-org/mjolnir#synapse-module
+matrix_synapse_ext_spam_checker_mjolnir_antispam_enabled: false
+matrix_synapse_ext_spam_checker_mjolnir_antispam_git_repository_url: "https://github.com/matrix-org/mjolnir"
+matrix_synapse_ext_spam_checker_mjolnir_antispam_git_version: "70f353fbbad0af469b1001080dea194d512b2815"
+matrix_synapse_ext_spam_checker_mjolnir_antispam_config_block_invites: true
+# Flag messages sent by servers/users in the ban lists as spam. Currently
+# this means that spammy messages will appear as empty to users. Default
+# false.
+matrix_synapse_ext_spam_checker_mjolnir_antispam_config_block_messages: false
+# Remove users from the user directory search by filtering matrix IDs and
+# display names by the entries in the user ban list. Default false.
+matrix_synapse_ext_spam_checker_mjolnir_antispam_config_block_usernames: false
+# The room IDs of the ban lists to honour. Unlike other parts of Mjolnir,
+# this list cannot be room aliases or permalinks. This server is expected
+# to already be joined to the room - Mjolnir will not automatically join
+# these rooms.
+# ["!roomid:example.org"]
+matrix_synapse_ext_spam_checker_mjolnir_antispam_config_ban_lists: []
+
 
 matrix_s3_media_store_enabled: false
 matrix_s3_media_store_custom_endpoint_enabled: false
@@ -522,6 +579,10 @@ matrix_synapse_default_room_version: "6"
 # If a spam-checker extension is enabled, this variable's value is set automatically by the playbook during runtime.
 # If not, you can also control its value manually.
 matrix_synapse_spam_checker: []
+
+matrix_synapse_modules: []
+
+matrix_synapse_encryption_enabled_by_default_for_room_type: off
 
 matrix_synapse_trusted_key_servers:
   - server_name: "matrix.org"

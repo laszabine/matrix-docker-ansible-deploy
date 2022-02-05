@@ -15,7 +15,7 @@ matrix_registration_docker_src_files_path: "{{ matrix_registration_base_path }}/
 matrix_registration_version: "v0.7.2"
 
 matrix_registration_docker_image: "{{ matrix_registration_docker_image_name_prefix }}zeratax/matrix-registration:{{ matrix_registration_version }}"
-matrix_registration_docker_image_name_prefix: "{{ 'localhost/' if matrix_registration_container_image_self_build else 'docker.io/' }}"
+matrix_registration_docker_image_name_prefix: "{{ 'localhost/' if matrix_registration_container_image_self_build else matrix_container_global_registry_prefix }}"
 matrix_registration_docker_image_force_pull: "{{ matrix_registration_docker_image.endswith(':latest') }}"
 
 # A list of extra arguments to pass to the container
@@ -38,7 +38,7 @@ matrix_registration_container_http_host_bind_port: ''
 #
 # To use Postgres:
 # - change the engine (`matrix_registration_database_engine: 'postgres'`)
-# - adjust your database credentials via the `matrix_registration_postgres_*` variables
+# - adjust your database credentials via the `matrix_registration_database_*` variables
 matrix_registration_database_engine: 'sqlite'
 
 matrix_registration_sqlite_database_path_local: "{{ matrix_registration_data_path }}/db.sqlite3"

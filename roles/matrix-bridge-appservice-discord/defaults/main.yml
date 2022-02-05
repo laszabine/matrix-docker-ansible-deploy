@@ -4,7 +4,7 @@
 matrix_appservice_discord_enabled: true
 
 matrix_appservice_discord_version: v1.0.0
-matrix_appservice_discord_docker_image: "docker.io/halfshot/matrix-appservice-discord:{{ matrix_appservice_discord_version }}"
+matrix_appservice_discord_docker_image: "{{ matrix_container_global_registry_prefix }}halfshot/matrix-appservice-discord:{{ matrix_appservice_discord_version }}"
 matrix_appservice_discord_docker_image_force_pull: "{{ matrix_appservice_discord_docker_image.endswith(':latest') }}"
 
 matrix_appservice_discord_base_path: "{{ matrix_base_data_path }}/appservice-discord"
@@ -48,7 +48,7 @@ matrix_appservice_discord_bridge_enableSelfServiceBridging: false
 #
 # To use Postgres:
 # - change the engine (`matrix_appservice_discord_database_engine: 'postgres'`)
-# - adjust your database credentials via the `matrix_appservice_discord_postgres_*` variables
+# - adjust your database credentials via the `matrix_appservice_discord_database_*` variables
 matrix_appservice_discord_database_engine: 'sqlite'
 
 matrix_appservice_discord_sqlite_database_path_local: "{{ matrix_appservice_discord_data_path }}/discord.db"

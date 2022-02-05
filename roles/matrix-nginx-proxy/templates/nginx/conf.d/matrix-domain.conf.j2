@@ -17,6 +17,18 @@
 	gzip on;
 	gzip_types text/plain application/json;
 
+	{% if matrix_nginx_proxy_floc_optout_enabled %}
+		add_header Permissions-Policy interest-cohort=() always;
+	{% endif %}
+
+	{% if matrix_nginx_proxy_hsts_preload_enabled %}
+		add_header Strict-Transport-Security "max-age=31536000; includeSubDomains; preload" always;
+	{% else %}
+		add_header Strict-Transport-Security "max-age=31536000; includeSubDomains" always;
+	{% endif %}
+
+	add_header X-XSS-Protection "{{ matrix_nginx_proxy_xss_protection }}";
+
 	location /.well-known/matrix {
 		root {{ matrix_static_files_base_path }};
 		{#
@@ -46,7 +58,8 @@
 		{% endif %}
 
 		proxy_set_header Host $host;
-		proxy_set_header X-Forwarded-For $remote_addr;
+		proxy_set_header X-Forwarded-For {{ matrix_nginx_proxy_x_forwarded_for }};
+		proxy_set_header X-Forwarded-Proto {{ matrix_nginx_proxy_x_forwarded_proto_value }};
 	}
 	{% endif %}
 
@@ -63,7 +76,8 @@
 		{% endif %}
 
 		proxy_set_header Host $host;
-		proxy_set_header X-Forwarded-For $remote_addr;
+		proxy_set_header X-Forwarded-For {{ matrix_nginx_proxy_x_forwarded_for }};
+		proxy_set_header X-Forwarded-Proto {{ matrix_nginx_proxy_x_forwarded_proto_value }};
 	}
 	{% endif %}
 
@@ -80,7 +94,7 @@
 		{% endif %}
 
 		proxy_set_header Host $host;
-		proxy_set_header X-Forwarded-For $remote_addr;
+		proxy_set_header X-Forwarded-For {{ matrix_nginx_proxy_x_forwarded_for }};
 	}
 	{% endif %}
 
@@ -97,7 +111,8 @@
 		{% endif %}
 
 		proxy_set_header Host $host;
-		proxy_set_header X-Forwarded-For $remote_addr;
+		proxy_set_header X-Forwarded-For {{ matrix_nginx_proxy_x_forwarded_for }};
+		proxy_set_header X-Forwarded-Proto {{ matrix_nginx_proxy_x_forwarded_proto_value }};
 	}
 	{% endif %}
 
@@ -121,16 +136,23 @@
 		{% endif %}
 
 		proxy_set_header Host $host;
-		proxy_set_header X-Forwarded-For $remote_addr;
+		proxy_set_header X-Forwarded-For {{ matrix_nginx_proxy_x_forwarded_for }};
+		proxy_set_header X-Forwarded-Proto {{ matrix_nginx_proxy_x_forwarded_proto_value }};
 
 		client_body_buffer_size 25M;
 		client_max_body_size {{ matrix_nginx_proxy_proxy_matrix_client_api_client_max_body_size_mb }}M;
 		proxy_max_temp_file_size 0;
 	}
 
-	location / {
+	{#
+		We only handle the root URI for this redirect or homepage serving.
+		Unhandled URIs (mostly by `matrix_nginx_proxy_proxy_matrix_client_api_forwarded_location_prefix_regexes` above) should result in a 404,
+		instead of causing a redirect.
+		See: https://github.com/spantaleev/matrix-docker-ansible-deploy/issues/1058
+	#}
+	location ~* ^/$ {
 		{% if matrix_nginx_proxy_proxy_matrix_client_redirect_root_uri_to_domain %}
-			return 302 $scheme://{{ matrix_nginx_proxy_proxy_matrix_client_redirect_root_uri_to_domain }}$request_uri;
+			return 302 {{ matrix_nginx_proxy_x_forwarded_proto_value }}://{{ matrix_nginx_proxy_proxy_matrix_client_redirect_root_uri_to_domain }}$request_uri;
 		{% else %}
 			rewrite ^/$ /_matrix/static/ last;
 		{% endif %}
@@ -139,6 +161,8 @@
 
 server {
 	listen {{ 8080 if matrix_nginx_proxy_enabled else 80 }};
+	listen [::]:{{ 8080 if matrix_nginx_proxy_enabled else 80 }};
+
 	server_name {{ matrix_nginx_proxy_proxy_matrix_hostname }};
 
 	server_tokens off;
@@ -188,6 +212,18 @@ server {
 	{% endif %}
 	ssl_prefer_server_ciphers {{ matrix_nginx_proxy_ssl_prefer_server_ciphers }};
 
+	{% if matrix_nginx_proxy_ocsp_stapling_enabled %}
+		ssl_stapling on;
+		ssl_stapling_verify on;
+		ssl_trusted_certificate {{ matrix_ssl_config_dir_path }}/live/{{ matrix_nginx_proxy_proxy_matrix_hostname }}/chain.pem;
+	{% endif %}
+
+	{% if matrix_nginx_proxy_ssl_session_tickets_off %}
+		ssl_session_tickets off;
+	{% endif %}
+	ssl_session_cache {{ matrix_nginx_proxy_ssl_session_cache }};
+	ssl_session_timeout {{ matrix_nginx_proxy_ssl_session_timeout }};
+
 	{{ render_vhost_directives() }}
 }
 {% endif %}
@@ -205,7 +241,7 @@ server {
 		listen {{ matrix_nginx_proxy_proxy_matrix_federation_port }};
 	{% endif %}
 
-	server_name {{ matrix_nginx_proxy_proxy_matrix_hostname }};
+	server_name {{ matrix_nginx_proxy_proxy_matrix_federation_hostname }};
 	server_tokens off;
 
 	root /dev/null;
@@ -222,6 +258,18 @@ server {
 			ssl_ciphers {{ matrix_nginx_proxy_ssl_ciphers }};
 		{% endif %}
 		ssl_prefer_server_ciphers {{ matrix_nginx_proxy_ssl_prefer_server_ciphers }};
+
+		{% if matrix_nginx_proxy_ocsp_stapling_enabled %}
+			ssl_stapling on;
+			ssl_stapling_verify on;
+			ssl_trusted_certificate {{ matrix_nginx_proxy_proxy_matrix_federation_api_ssl_trusted_certificate }};
+		{% endif %}
+
+		{% if matrix_nginx_proxy_ssl_session_tickets_off %}
+			ssl_session_tickets off;
+		{% endif %}
+		ssl_session_cache {{ matrix_nginx_proxy_ssl_session_cache }};
+		ssl_session_timeout {{ matrix_nginx_proxy_ssl_session_timeout }};
 	{% endif %}
 
 	location / {
@@ -236,7 +284,8 @@ server {
 		{% endif %}
 
 		proxy_set_header Host $host;
-		proxy_set_header X-Forwarded-For $remote_addr;
+		proxy_set_header X-Forwarded-For {{ matrix_nginx_proxy_x_forwarded_for }};
+		proxy_set_header X-Forwarded-Proto {{ matrix_nginx_proxy_x_forwarded_proto_value }};
 
 		client_body_buffer_size 25M;
 		client_max_body_size {{ matrix_nginx_proxy_proxy_matrix_federation_api_client_max_body_size_mb }}M;

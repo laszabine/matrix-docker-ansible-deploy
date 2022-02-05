@@ -34,18 +34,17 @@ ExecStart={{ matrix_host_command_docker }} run --rm --name matrix-synapse \
 			--log-driver=none \
 			--user={{ matrix_user_uid }}:{{ matrix_user_gid }} \
 			--cap-drop=ALL \
-			--entrypoint=python \
 			--read-only \
 			--tmpfs=/tmp:rw,noexec,nosuid,size={{ matrix_synapse_tmp_directory_size_mb }}m \
 			--network={{ matrix_docker_network }} \
 			{% if matrix_synapse_container_client_api_host_bind_port %}
-			-p {{ matrix_synapse_container_client_api_host_bind_port }}:8008 \
+			-p {{ matrix_synapse_container_client_api_host_bind_port }}:{{ matrix_synapse_container_client_api_port }} \
 			{% endif %}
 			{% if matrix_synapse_federation_enabled and matrix_synapse_tls_federation_listener_enabled and matrix_synapse_container_federation_api_tls_host_bind_port %}
-			-p {{ matrix_synapse_container_federation_api_tls_host_bind_port }}:8448 \
+			-p {{ matrix_synapse_container_federation_api_tls_host_bind_port }}:{{ matrix_synapse_container_federation_api_tls_port }} \
 			{% endif %}
 			{% if matrix_synapse_federation_enabled and matrix_synapse_container_federation_api_plain_host_bind_port %}
-			-p {{ matrix_synapse_container_federation_api_plain_host_bind_port }}:8048 \
+			-p {{ matrix_synapse_container_federation_api_plain_host_bind_port }}:{{ matrix_synapse_container_federation_api_plain_port }} \
 			{% endif %}
 			{% if matrix_synapse_metrics_enabled and matrix_synapse_container_metrics_api_host_bind_port %}
 			-p {{ matrix_synapse_container_metrics_api_host_bind_port }}:{{ matrix_synapse_metrics_port }} \
@@ -62,7 +61,7 @@ ExecStart={{ matrix_host_command_docker }} run --rm --name matrix-synapse \
 			{{ arg }} \
 			{% endfor %}
 			{{ matrix_synapse_docker_image }} \
-			-m synapse.app.homeserver -c /data/homeserver.yaml
+			run -m synapse.app.homeserver -c /data/homeserver.yaml
 
 ExecStop=-{{ matrix_host_command_sh }} -c '{{ matrix_host_command_docker }} kill matrix-synapse 2>/dev/null'
 ExecStop=-{{ matrix_host_command_sh }} -c '{{ matrix_host_command_docker }} rm matrix-synapse 2>/dev/null'
