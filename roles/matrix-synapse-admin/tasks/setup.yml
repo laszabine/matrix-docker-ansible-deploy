@@ -11,6 +11,10 @@
     force_source: "{{ matrix_synapse_admin_docker_image_force_pull if ansible_version.major > 2 or ansible_version.minor >= 8 else omit }}"
     force: "{{ omit if ansible_version.major > 2 or ansible_version.minor >= 8 else matrix_synapse_admin_docker_image_force_pull }}"
   when: "matrix_synapse_admin_enabled|bool and not matrix_synapse_admin_container_image_self_build|bool"
+  register: result
+  retries: "{{ matrix_container_retries_count }}"
+  delay: "{{ matrix_container_retries_delay }}"
+  until: result is not failed
 
 - name: Ensure matrix-synapse-admin repository is present when self-building
   git:
@@ -18,6 +22,8 @@
     dest: "{{ matrix_synapse_admin_docker_src_files_path }}"
     version: "{{ matrix_synapse_admin_docker_image.split(':')[1] }}"
     force: "yes"
+  become: true
+  become_user: "{{ matrix_user_username }}"
   register: matrix_synapse_admin_git_pull_results
   when: "matrix_synapse_admin_enabled|bool and matrix_synapse_admin_container_image_self_build|bool"
 
@@ -30,7 +36,7 @@
     build:
       dockerfile: Dockerfile
       path: "{{ matrix_synapse_admin_docker_src_files_path }}"
-      pull: yes
+      pull: true
   when: "matrix_synapse_admin_enabled|bool and matrix_synapse_admin_container_image_self_build|bool"
 
 - name: Ensure matrix-synapse-admin.service installed
@@ -43,7 +49,7 @@
 
 - name: Ensure systemd reloaded after matrix-synapse-admin.service installation
   service:
-    daemon_reload: yes
+    daemon_reload: true
   when: "matrix_synapse_admin_enabled|bool and matrix_synapse_admin_systemd_service_result.changed"
 
 #
@@ -59,8 +65,8 @@
   service:
     name: matrix-synapse-admin
     state: stopped
-    enabled: no
-    daemon_reload: yes
+    enabled: false
+    daemon_reload: true
   register: stopping_result
   when: "not matrix_synapse_admin_enabled|bool and matrix_synapse_admin_service_stat.stat.exists"
 
@@ -72,7 +78,7 @@
 
 - name: Ensure systemd reloaded after matrix-synapse-admin.service removal
   service:
-    daemon_reload: yes
+    daemon_reload: true
   when: "not matrix_synapse_admin_enabled|bool and matrix_synapse_admin_service_stat.stat.exists"
 
 - name: Ensure matrix-synapse-admin Docker image doesn't exist

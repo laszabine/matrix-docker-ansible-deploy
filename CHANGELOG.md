@@ -1,3 +1,88 @@
+# 2022-04-25
+
+## buscarron bot support
+
+Thanks to [Aine](https://gitlab.com/etke.cc) of [etke.cc](https://etke.cc/), the playbook can now set up [the Buscarron bot](https://gitlab.com/etke.cc/buscarron). It's a bot you can use to send any form (HTTP POST, HTML) to a (encrypted) Matrix room
+
+See our [Setting up Buscarron](docs/configuring-playbook-bot-buscarron.md) documentation to get started.
+
+
+# 2022-04-21
+
+## matrix-registration-bot support
+
+Thanks to [Julian-Samuel Gebühr (@moan0s)](https://github.com/moan0s), the playbook can now help you set up [matrix-registration-bot](https://github.com/moan0s/matrix-registration-bot) - a bot that is used to create and manage registration tokens for a Matrix server.
+
+See our [Setting up matrix-registration-bot](docs/configuring-playbook-bot-matrix-registration-bot.md) documentation to get started.
+
+
+# 2022-04-19
+
+## Borg backup support
+
+Thanks to [Aine](https://gitlab.com/etke.cc) of [etke.cc](https://etke.cc/), the playbook can now set up [Borg](https://www.borgbackup.org/) backups with [borgmatic](https://torsion.org/borgmatic/) of your Matrix server.
+
+See our [Setting up borg backup](docs/configuring-playbook-backup-borg.md) documentation to get started.
+
+
+## (Compatibility Break) Upgrading to Synapse v1.57 on setups using workers may require manual action
+
+If you're running a worker setup for Synapse (`matrix_synapse_workers_enabled: true`), the [Synapse v1.57 upgrade notes](https://github.com/matrix-org/synapse/blob/v1.57.0rc1/docs/upgrade.md#changes-to-database-schema-for-application-services) say that you may need to take special care when upgrading:
+
+> Synapse v1.57.0 includes a change to the way transaction IDs are managed for application services. If your deployment uses a dedicated worker for application service traffic, **it must be stopped** when the database is upgraded (which normally happens when the main process is upgraded), to ensure the change is made safely without any risk of reusing transaction IDs.
+
+If you're not running an `appservice` worker (`matrix_synapse_workers_preset: little-federation-helper` or `matrix_synapse_workers_appservice_workers_count: 0`), you are probably safe to upgrade as per normal, without taking any special care.
+
+If you are running a setup with an `appservice` worker, or otherwise want to be on the safe side, we recommend the following upgrade path:
+
+0. Pull the latest playbook changes
+1. Stop all services (`ansible-playbook -i inventory/hosts setup.yml --tags=stop`)
+2. Re-run the playbook (`ansible-playbook -i inventory/hosts setup.yml --tags=setup-all`)
+3. Start Postgres (`systemctl start matrix-postgres` on the server)
+4. Start the main Synapse process (`systemctl start matrix-synapse` on the server)
+5. Wait a while so that Synapse can start and complete the database migrations. You can use `journalctl -fu matrix-synapse` on the server to get a clue. Waiting a few minutes should also be enough.
+6. It should now be safe to start all other services. `ansible-playbook -i inventory/hosts setup.yml --tags=start` will do it for you
+
+
+# 2022-04-14
+
+## (Compatibility Break) Changes to `docker-src` permissions necessitating manual action
+
+Users who build container images from source will need to manually correct file permissions of some directories on the server.
+
+When self-building, the playbook used to `git clone` repositories (into `/matrix/SERVICE/docker-src`) using the `root` user, but now uses `matrix` instead to work around [the following issue with git 2.35.2](https://github.com/spantaleev/matrix-docker-ansible-deploy/issues/1749).
+
+If you're on a non-`amd64` architecture (that is, you're overriding `matrix_architecture` in your `vars.yml` file) or you have enabled self-building for some service (e.g. `matrix_*_self_build: true`), you're certainly building some container images from source and have `docker-src` directories with mixed permissions lying around in various `/matrix/SERVICE` directories.
+
+The playbook *could* correct these permissions automatically, but that requires additional Ansible tasks in some ~45 different places - something that takes considerable effort. So we ask users observing errors related to `docker-src` directories to correct the problem manually by **running this command on the Matrix server** (which deletes all `/matrix/*/docker-src` directories): `find /matrix -maxdepth 2 -name 'docker-src' | xargs rm -rf`
+
+
+# 2022-03-17
+
+## (Compatibility Break) ma1sd identity server no longer installed by default
+
+The playbook no longer installs the [ma1sd](https://github.com/ma1uta/ma1sd) identity server by default. The next time you run the playbook, ma1sd will be uninstalled from your server, unless you explicitly enable the ma1sd service (see how below).
+
+The main reason we used to install ma1sd by default in the past was to prevent Element from talking to the `matrix.org` / `vector.im` identity servers, by forcing it to talk to our own self-hosted (but otherwise useless) identity server instead, thus preventing contact list leaks.
+
+Since Element no longer defaults to using a public identity server if another one is not provided, we can stop installing ma1sd.
+
+If you need to install the ma1sd identity server for some reason, you can explicitly enable it by adding this to your `vars.yml` file:
+
+```yaml
+matrix_ma1sd_enabled: true
+```
+
+
+# 2022-02-12
+
+## matrix_encryption_disabler support
+
+We now support installing the [matrix_encryption_disabler](https://github.com/digitalentity/matrix_encryption_disabler) Synapse module, which lets you prevent End-to-End-Encryption from being enabled by users on your homeserver. The popular opinion is that this is dangerous and shouldn't be done, but there are valid use cases for disabling encryption discussed [here](https://github.com/matrix-org/synapse/issues/4401).
+
+To enable this module (and prevent encryption from being used on your homserver), add `matrix_synapse_ext_encryption_disabler_enabled: true` to your configuration. This module provides further customization. Check its other configuration settings (and defaults) in `roles/matrix-synapse/defaults/main.yml`.
+
+
 # 2022-02-01
 
 ## matrix-hookshot bridging support
